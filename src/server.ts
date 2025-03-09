@@ -31,15 +31,15 @@ mongoose.connect(mongoURI, {
     console.error('Stack trace:', error.stack);
   });
 // // בדיקת התחברות ל-MongoDB
-// const db = mongoose.connection;
+const db = mongoose.connection;
 
-// db.on('error', (error) => {
-//   console.error('❌ Connection error to MongoDB:', error);
-// });
+db.on('error', (error) => {
+  console.error('❌ Connection error to MongoDB:', error);
+});
 
-// db.once('open', () => {
-//   console.log('✅ Successfully connected to MongoDB!');
-// });
+db.once('open', () => {
+  console.log('✅ Successfully connected to MongoDB!');
+});
 
 // הגדרת סכמה עבור User
 interface IUser extends Document {
