@@ -14,6 +14,18 @@ const server = http.createServer(app);
 app.use(cookieParser());
 app.use(express.json());
 
+// === Health check routes ===
+app.get("/api/is-alive", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Server is alive" });
+});
+
+app.get("/api/socket-status", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    activeConnections: activeSockets.size,
+  });
+});
+// === Middleware ===
 const allowedOrigins = [
   "http://localhost:5173",
   "https://tasks-clint.netlify.app",
@@ -63,17 +75,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// === Health check routes ===
-app.get("/api/is-alive", (req, res) => {
-  res.status(200).json({ status: "ok", message: "Server is alive" });
-});
 
-app.get("/api/socket-status", (req, res) => {
-  res.status(200).json({
-    status: "ok",
-    activeConnections: activeSockets.size,
-  });
-});
 
 // === Main API routes ===
 app.use("/api/auth", authRoutes);
