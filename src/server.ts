@@ -14,16 +14,12 @@ const server = http.createServer(app);
 app.use(cookieParser());
 app.use(express.json());
 
-app.get("/api/is-alive", (req, res) => {
-  res.status(200).json({ status: "ok", message: "Server is alive" });
-});
-
-
 const allowedOrigins = [
   "http://localhost:5173",
   "https://tasks-clint.netlify.app",
 ];
 
+// CORS for HTTP requests
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -37,6 +33,7 @@ app.use(
   })
 );
 
+// Socket.IO with CORS
 export const io = new Server(server, {
   path: "/api/socket.io",
   cors: {
@@ -52,16 +49,35 @@ export const io = new Server(server, {
   },
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/tasks", taskRoutes);
+let activeSockets = new Set();
 
 io.on("connection", (socket) => {
-  // console.log("User connected:", socket.id);
+  const origin = socket.handshake.headers.origin;
+  console.log(`Socket.IO connected from origin: ${origin}`);
+
+  activeSockets.add(socket.id);
 
   socket.on("disconnect", () => {
-    // console.log("User disconnected:", socket.id);
+    console.log(`Socket.IO disconnected from origin: ${origin}`);
+    activeSockets.delete(socket.id);
   });
 });
+
+// === Health check routes ===
+app.get("/api/is-alive", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Server is alive" });
+});
+
+app.get("/api/socket-status", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    activeConnections: activeSockets.size,
+  });
+});
+
+// === Main API routes ===
+app.use("/api/auth", authRoutes);
+app.use("/api/tasks", taskRoutes);
 
 const PORT = process.env.PORT || 5000;
 connectDB().then(() => {
