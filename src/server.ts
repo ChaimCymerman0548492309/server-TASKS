@@ -14,6 +14,11 @@ const server = http.createServer(app);
 app.use(cookieParser());
 app.use(express.json());
 
+app.get("/api/is-alive", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Server is alive" });
+});
+
+
 const allowedOrigins = [
   "http://localhost:5173",
   "https://tasks-clint.netlify.app",
