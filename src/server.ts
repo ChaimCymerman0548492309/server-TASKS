@@ -16,7 +16,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: "*",
+    origin: "https://sunny-lolly-c1ce82.netlify.app",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   })
@@ -25,7 +25,7 @@ app.use(
 export const io = new Server(server, {
   path: "/api/socket.io",
   cors: {
-    origin: "*",
+    origin: "https://sunny-lolly-c1ce82.netlify.app",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   },
