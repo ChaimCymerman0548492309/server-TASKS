@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import User, { IUser } from "../models/User"; // נייבא גם את IUser
+import User, { IUser } from "../models/User"; 
 
 interface AuthRequest extends Request {
   user?: {

@@ -9,7 +9,6 @@ interface AuthRequest extends Request {
   };
 }
 
-// יצירת משימה
 export const createTask = async (
   req: AuthRequest,
   res: Response
@@ -28,7 +27,6 @@ export const createTask = async (
 
     await task.save();
 
-    // שידור למשימות בלייב
     io.emit("task_created", {
       ...task.toObject(),
       createdBy: req.user.username,
@@ -40,7 +38,6 @@ export const createTask = async (
   }
 };
 
-// קבלת כל המשימות
 export const getTasks = async (req: Request, res: Response) => {
   try {
     const tasks = await Task.find();
@@ -50,7 +47,6 @@ export const getTasks = async (req: Request, res: Response) => {
   }
 };
 
-// עדכון משימה
 export const updateTask = async (
   req: Request,
   res: Response
@@ -66,7 +62,6 @@ export const updateTask = async (
       return res.status(404).json({ error: "Task not found" });
     }
 
-    // שידור העדכון לכל הלקוחות
     io.emit("task_updated", task);
 
     return res.json(task);
@@ -75,7 +70,6 @@ export const updateTask = async (
   }
 };
 
-// מחיקת משימה
 export const deleteTask = async (
   req: Request,
   res: Response
@@ -87,7 +81,6 @@ export const deleteTask = async (
       return res.status(404).json({ error: "Task not found" });
     }
 
-    // שידור המחיקה לכל הלקוחות
     io.emit("task_deleted", { _id: req.params.id });
 
     return res.json({

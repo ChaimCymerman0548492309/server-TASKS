@@ -6,7 +6,7 @@ export interface ITask extends Document {
   completed: boolean;
   userId: Schema.Types.ObjectId;
   createdBy: string;
-  createdAt: Date; // תאריך יצירה
+  createdAt: Date;
 }
 
 const TaskSchema = new Schema<ITask>(
@@ -18,7 +18,7 @@ const TaskSchema = new Schema<ITask>(
     createdBy: { type: String, required: true },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false }, // מוסיף אוטומטית createdAt
+    timestamps: { createdAt: true, updatedAt: false },
   }
 );
 

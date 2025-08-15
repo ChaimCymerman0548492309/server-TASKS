@@ -9,7 +9,6 @@ const generateToken = (user: IUser): string => {
   });
 };
 
-// Explicit return type for all controller functions
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, email, password } = req.body;
@@ -42,14 +41,12 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // יוצר את ה-token
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET || "secret",
       { expiresIn: "1h" }
     );
 
-    // מוסיף מידע נוסף בקוקי (למשל שם המשתמש)
     const userInfo = { username: user.username, email: user.email };
     const encodedUser = Buffer.from(JSON.stringify(userInfo)).toString("base64");
 
@@ -61,7 +58,7 @@ export const login = async (req: Request, res: Response) => {
     });
 
     res.cookie("userInfo", encodedUser, {
-      httpOnly: false, // כדי שתוכל לגשת אליו ב-client
+      httpOnly: false, 
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       maxAge: 3600000,
