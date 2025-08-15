@@ -31,20 +31,37 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const login = async (req: Request, res: Response): Promise<void> => {
+
+
+export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
 
     if (!user || !(await user.comparePassword(password))) {
-      res.status(401).json({ error: "Invalid credentials" });
-      return;
+      return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const token = generateToken(user);
+    // יוצר את ה-token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || "secret",
+      { expiresIn: "1h" }
+    );
+
+    // מוסיף מידע נוסף בקוקי (למשל שם המשתמש)
+    const userInfo = { username: user.username, email: user.email };
+    const encodedUser = Buffer.from(JSON.stringify(userInfo)).toString("base64");
 
     res.cookie("token", token, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 3600000,
+    });
+
+    res.cookie("userInfo", encodedUser, {
+      httpOnly: false, // כדי שתוכל לגשת אליו ב-client
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       maxAge: 3600000,
@@ -55,7 +72,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: "Login failed" });
   }
 };
-
 export const logout = (req: Request, res: Response): void => {
   res.clearCookie("token");
   res.json({ message: "Logged out successfully" });

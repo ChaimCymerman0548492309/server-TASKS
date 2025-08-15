@@ -35,10 +35,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  // console.log("User connected:", socket.id);
 
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+    // console.log("User disconnected:", socket.id);
   });
 });
 
