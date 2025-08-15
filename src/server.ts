@@ -14,18 +14,34 @@ const server = http.createServer(app);
 app.use(cookieParser());
 app.use(express.json());
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://tasks-clint.netlify.app",
+];
+
 app.use(
   cors({
-    origin: "https://tasks-clint.netlify.app",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   })
 );
 
 export const io = new Server(server, {
   path: "/api/socket.io",
   cors: {
-    origin: "https://tasks-clint.netlify.app",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   },
