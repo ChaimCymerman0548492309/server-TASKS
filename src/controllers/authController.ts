@@ -31,7 +31,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 };
 
 
-
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -48,8 +47,11 @@ export const login = async (req: Request, res: Response) => {
     );
 
     const userInfo = { username: user.username, email: user.email };
-    const encodedUser = Buffer.from(JSON.stringify(userInfo)).toString("base64");
+    const encodedUser = Buffer.from(JSON.stringify(userInfo)).toString(
+      "base64"
+    );
 
+    // קוקי עם הטוקן בלבד (HttpOnly)
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -57,18 +59,24 @@ export const login = async (req: Request, res: Response) => {
       maxAge: 3600000,
     });
 
+    // קוקי עם userInfo ל-JS (cross-site allowed)
     res.cookie("userInfo", encodedUser, {
-      httpOnly: false, 
+      httpOnly: false, // כדי שהקליינט יוכל לקרוא
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "none",
       maxAge: 3600000,
     });
 
-    res.json({ message: "Logged in successfully" });
+    // החזרת הנתונים גם ב-JSON
+    res.json({
+      message: "Logged in successfully",
+      userInfo, // החזרת ה-userInfo ל-JS
+    });
   } catch (err) {
     res.status(500).json({ error: "Login failed" });
   }
 };
+
 export const logout = (req: Request, res: Response): void => {
   res.clearCookie("token");
   res.json({ message: "Logged out successfully" });
