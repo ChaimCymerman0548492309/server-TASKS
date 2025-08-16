@@ -31,15 +31,12 @@ app.get("/api/socket-status", (req, res) => {
 const allowedOrigins = [
   "http://localhost:5173",
   "https://tasks-clint.netlify.app",
-  "https://tasks-server-production.up.railway.app", // Railway public URL
-  "https://tasks-server.com", // Custom domain if you have
+  "https://tasks-server-production.up.railway.app",
+  "https://tasks-server.com",
 ];
 
-// CORS for HTTP requests (EXCLUDES health check)
-app.use((req, res, next) => {
-  if (req.path === "/api/is-alive") {
-    return next(); // Skip CORS for health check
-  }
+// ✅ CORS for HTTP requests
+app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {
@@ -49,8 +46,8 @@ app.use((req, res, next) => {
       }
     },
     credentials: true,
-  })(req, res, next);
-});
+  })
+);
 
 // === Socket.IO with CORS ===
 export const io = new Server(server, {
