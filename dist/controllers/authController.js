@@ -11,18 +11,23 @@ const generateToken = (user) => {
         expiresIn: "1h",
     });
 };
+// פונקציה לעטיפת יצירת הקוקי לפי הסביבה
+const setAuthCookie = (res, token) => {
+    const isProd = process.env.NODE_ENV === "production";
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: isProd, // HTTPS בפרודקשן
+        sameSite: isProd ? "strict" : "none", // בפיתוח חייב none
+        maxAge: 3600000,
+    });
+};
 const register = async (req, res) => {
     try {
         const { username, email, password } = req.body;
         const user = new User_1.default({ username, email, password });
         await user.save();
         const token = generateToken(user);
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 3600000,
-        });
+        setAuthCookie(res, token);
         res.status(201).json({ message: "Registered successfully" });
     }
     catch (err) {
@@ -37,22 +42,22 @@ const login = async (req, res) => {
         if (!user || !(await user.comparePassword(password))) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
-        const token = jsonwebtoken_1.default.sign({ id: user._id }, process.env.JWT_SECRET || "secret", { expiresIn: "1h" });
+        const token = generateToken(user);
         const userInfo = { username: user.username, email: user.email };
         const encodedUser = Buffer.from(JSON.stringify(userInfo)).toString("base64");
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 3600000,
-        });
+        // קוקי עם הטוקן
+        setAuthCookie(res, token);
+        // קוקי נוסף עם userInfo לקריאה בצד הלקוח
         res.cookie("userInfo", encodedUser, {
             httpOnly: false,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            sameSite: "none",
             maxAge: 3600000,
         });
-        res.json({ message: "Logged in successfully" });
+        res.json({
+            message: "Logged in successfully",
+            userInfo,
+        });
     }
     catch (err) {
         res.status(500).json({ error: "Login failed" });

@@ -8,6 +8,6 @@ const TaskSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "UserIDF", required: true },
     createdBy: { type: String, required: true },
 }, {
-    timestamps: { createdAt: true, updatedAt: false }, // מוסיף אוטומטית createdAt
+    timestamps: { createdAt: true, updatedAt: false },
 });
 exports.default = (0, mongoose_1.model)("TaskIDF", TaskSchema);

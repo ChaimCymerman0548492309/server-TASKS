@@ -14,7 +14,26 @@ const server = http.createServer(app);
 app.use(cookieParser());
 app.use(express.json());
 
-// === Health check routes (ALWAYS OPEN) ===
+// === Environment detection ===
+const isProd = process.env.NODE_ENV === "production";
+
+const allowedOrigins = isProd
+  ? [
+      "https://tasks-clint.netlify.app",
+      "https://tasks-server.com",
+      "https://tasks-server-production.up.railway.app",
+    ]
+  : ["http://localhost:5173"];
+
+// ✅ CORS for HTTP requests
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+
+// === Health check routes ===
 app.get("/api/is-alive", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is alive" });
 });
@@ -27,39 +46,11 @@ app.get("/api/socket-status", (req, res) => {
   });
 });
 
-// === Middleware ===
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://tasks-clint.netlify.app",
-  "https://tasks-server-production.up.railway.app",
-  "https://tasks-server.com",
-];
-
-// ✅ CORS for HTTP requests
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
-
 // === Socket.IO with CORS ===
 export const io = new Server(server, {
   path: "/api/socket.io",
   cors: {
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   },

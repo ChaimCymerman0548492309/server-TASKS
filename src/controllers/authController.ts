@@ -2,25 +2,25 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import User, { IUser } from "../models/User";
 
+const isProd = process.env.NODE_ENV === "production";
+
 const generateToken = (user: IUser): string => {
   return jwt.sign({ id: user._id }, process.env.JWT_SECRET!, {
     expiresIn: "1h",
   });
 };
 
-// פונקציה לעטיפת יצירת הקוקי לפי הסביבה
 const setAuthCookie = (res: Response, token: string) => {
-  const isProd = process.env.NODE_ENV === "production";
-
   res.cookie("token", token, {
     httpOnly: true,
-    secure: isProd, // HTTPS בפרודקשן
-    sameSite: isProd ? "strict" : "none", // בפיתוח חייב none
+    secure: isProd, // true בפרודקשן
+    sameSite: isProd ? "none" : "lax", // none לפרודקשן cross-site, lax בפיתוח
     maxAge: 3600000,
+    path: "/",
   });
 };
 
-export const register = async (req: Request, res: Response): Promise<void> => {
+export const register = async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body;
     const user = new User({ username, email, password });
@@ -51,15 +51,16 @@ export const login = async (req: Request, res: Response) => {
       "base64"
     );
 
-    // קוקי עם הטוקן
+    // קוקי HttpOnly עם token
     setAuthCookie(res, token);
 
-    // קוקי נוסף עם userInfo לקריאה בצד הלקוח
+    // קוקי עם userInfo לקריאה בצד הלקוח
     res.cookie("userInfo", encodedUser, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
       maxAge: 3600000,
+      path: "/",
     });
 
     res.json({
@@ -71,7 +72,8 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const logout = (req: Request, res: Response): void => {
-  res.clearCookie("token");
+export const logout = (req: Request, res: Response) => {
+  res.clearCookie("token", { path: "/" });
+  res.clearCookie("userInfo", { path: "/" });
   res.json({ message: "Logged out successfully" });
 };
