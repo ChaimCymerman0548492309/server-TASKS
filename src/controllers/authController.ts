@@ -22,39 +22,85 @@ const setAuthCookie = (res: Response, token: string) => {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { username, email, password } = req.body;
-    const user = new User({ username, email, password });
+    const user = new User(req.body);
     await user.save();
 
     const token = generateToken(user);
     setAuthCookie(res, token);
 
-    res.status(201).json({ message: "Registered successfully" });
-  } catch (err) {
-    res.status(400).json({ error: "Registration failed" });
+    return res.status(201).json({ message: "Registered successfully" });
+  } catch (err: unknown) {
+    if (isMongoError(err)) {
+      const field = err.keyValue ? Object.keys(err.keyValue)[0] : "field";
+      return res.status(400).json({ error: `${field} already exists` });
+    }
+
+    const errorMessage =
+      err instanceof Error ? err.message : "Registration failed";
+    return res.status(500).json({ error: errorMessage });
   }
 };
+
+// Type guard for MongoDB errors
+function isMongoError(
+  err: unknown
+): err is { code: number; keyValue: Record<string, unknown> } {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as any).code === 11000
+  );
+}
 
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
 
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ error: "Invalid credentials" });
+    // בדיקת שדות חובה
+    if (!email || !password) {
+      return res.status(400).json({
+        error: "MISSING_FIELDS",
+        message: "Email and password are required",
+      });
     }
 
+    // חיפוש המשתמש
+    const user = await User.findOne({ email });
+
+    // אם המשתמש לא קיים
+    if (!user) {
+      return res.status(401).json({
+        error: "INVALID_CREDENTIALS",
+        message: "Invalid email or password",
+      });
+    }
+
+    // בדיקת סיסמה
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        error: "INVALID_CREDENTIALS",
+        message: "Invalid email or password",
+      });
+    }
+
+    // יצירת טוקן
     const token = generateToken(user);
 
-    const userInfo = { username: user.username, email: user.email };
+    // הכנת נתוני משתמש
+    const userInfo = {
+      username: user.username,
+      email: user.email,
+      id: user._id,
+    };
+
     const encodedUser = Buffer.from(JSON.stringify(userInfo)).toString(
       "base64"
     );
 
-    // קוקי HttpOnly עם token
+    // הגדרת קוקי
     setAuthCookie(res, token);
-
-    // קוקי עם userInfo לקריאה בצד הלקוח
     res.cookie("userInfo", encodedUser, {
       httpOnly: false,
       secure: isProd,
@@ -68,7 +114,11 @@ export const login = async (req: Request, res: Response) => {
       userInfo,
     });
   } catch (err) {
-    res.status(500).json({ error: "Login failed" });
+    console.error("Login error:", err);
+    res.status(500).json({
+      error: "SERVER_ERROR",
+      message: "An unexpected error occurred. Please try again later.",
+    });
   }
 };
 
