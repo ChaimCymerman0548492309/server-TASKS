@@ -7,16 +7,18 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes";
 import taskRoutes from "./routes/taskRoutes";
 import connectDB from "./config/db";
+import { logger } from "./config/logger";
 
+
+
+// --- Express + Socket.IO setup ---
 const app = express();
 const server = http.createServer(app);
 
 app.use(cookieParser());
 app.use(express.json());
 
-// === Environment detection ===
 const isProd = process.env.NODE_ENV === "production";
-
 const allowedOrigins = isProd
   ? [
       "https://tasks-clint.netlify.app",
@@ -25,28 +27,25 @@ const allowedOrigins = isProd
     ]
   : ["http://localhost:5173"];
 
-// ✅ CORS for HTTP requests
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-  })
-);
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
-// === Health check routes ===
+// === Health check ===
 app.get("/api/is-alive", (req, res) => {
+  logger.info("Server", { service: "Server", info: "Health check requested" });
   res.status(200).json({ status: "ok", message: "Server is alive" });
 });
 
-let activeSockets = new Set();
+// === Socket status ===
+let activeSockets = new Set<string>();
 app.get("/api/socket-status", (req, res) => {
-  res.status(200).json({
-    status: "ok",
-    activeConnections: activeSockets.size,
+  logger.debug("Server", {
+    service: "Server",
+    activeSockets: activeSockets.size,
   });
+  res.status(200).json({ status: "ok", activeConnections: activeSockets.size });
 });
 
-// === Socket.IO with CORS ===
+// === Socket.IO ===
 export const io = new Server(server, {
   path: "/api/socket.io",
   cors: {
@@ -58,13 +57,29 @@ export const io = new Server(server, {
 
 io.on("connection", (socket) => {
   const origin = socket.handshake.headers.origin;
-  console.log(`Socket.IO connected from origin: ${origin}`);
+  logger.info("Socket.IO", {
+    service: "Socket.IO",
+    message: `Connected from origin: ${origin}`,
+    socketId: socket.id,
+  });
 
   activeSockets.add(socket.id);
 
   socket.on("disconnect", () => {
-    console.log(`Socket.IO disconnected from origin: ${origin}`);
+    logger.warn("Socket.IO", {
+      service: "Socket.IO",
+      message: `Disconnected from origin: ${origin}`,
+      socketId: socket.id,
+    });
     activeSockets.delete(socket.id);
+  });
+
+  socket.on("error", (err) => {
+    logger.error("Socket.IO", {
+      service: "Socket.IO",
+      message: "Socket error",
+      error: { name: err.name, message: err.message, stack: err.stack },
+    });
   });
 });
 
@@ -72,7 +87,22 @@ io.on("connection", (socket) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 
+// === Connect to DB and start server ===
 const PORT = process.env.PORT || 5000;
-connectDB().then(() => {
-  server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-});
+connectDB()
+  .then(() => {
+    server.listen(PORT, () => {
+      logger.info("Server", {
+        service: "Server",
+        message: `Server running on port ${PORT}`,
+      });
+    });
+  })
+  .catch((err: Error) => {
+    logger.error("Server", {
+      service: "Server",
+      message: "Database connection failed",
+      error: { name: err.name, message: err.message, stack: err.stack },
+    });
+    process.exit(1); // exit if DB fails
+  });
