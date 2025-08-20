@@ -2,20 +2,40 @@ import fs from "fs";
 import path from "path";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
-const levels: Record<LogLevel, number> = {
+const levels: Record<string, number> = {
   debug: 0,
   info: 1,
   warn: 2,
   error: 3,
 };
 
+// export interface ILogger {
+//   debug(message: string, meta?: Record<string, unknown>): void;
+//   info(message: string, meta?: Record<string, unknown>): void;
+//   warn(message: string, meta?: Record<string, unknown>): void;
+//   error(message: string, meta?: Record<string, unknown>): void;
+//   setLevel(level: LogLevel): void;
+// }
 export interface ILogger {
-  debug(message: string, meta?: Record<string, unknown>): void;
-  info(message: string, meta?: Record<string, unknown>): void;
-  warn(message: string, meta?: Record<string, unknown>): void;
-  error(message: string, meta?: Record<string, unknown>): void;
+  debug<T extends object = Record<string, unknown>>(
+    message: string,
+    meta?: T
+  ): void;
+  info<T extends object = Record<string, unknown>>(
+    message: string,
+    meta?: T
+  ): void;
+  warn<T extends object = Record<string, unknown>>(
+    message: string,
+    meta?: T
+  ): void;
+  error<T extends object = Record<string, unknown>>(
+    message: string,
+    meta?: T
+  ): void;
   setLevel(level: LogLevel): void;
 }
+
 
 export class SimpleLogger implements ILogger {
   private minLevel: LogLevel = "debug";
@@ -31,11 +51,7 @@ export class SimpleLogger implements ILogger {
     this.minLevel = level;
   }
 
-  private log(
-    level: LogLevel,
-    message: string,
-    meta?: Record<string, unknown>
-  ) {
+  private log<T>(level: LogLevel, message: string, meta?: T | undefined) {
     if (levels[level] < levels[this.minLevel]) return;
     const timestamp = new Date().toISOString();
     const entry = { timestamp, level, message, meta: meta || null };
@@ -49,20 +65,19 @@ export class SimpleLogger implements ILogger {
   }
 
   // TS מזהה שהפונקציות קיימות
-  debug(message: string, meta?: Record<string, unknown>) {
+  debug<T extends object = Record<string, unknown>>(message: string, meta?: T) {
     this.log("debug", message, meta);
   }
-  info(message: string, meta?: Record<string, unknown>) {
+  info<T extends object = Record<string, unknown>>(message: string, meta?: T) {
     this.log("info", message, meta);
   }
-  warn(message: string, meta?: Record<string, unknown>) {
+  warn<T extends object = Record<string, unknown>>(message: string, meta?: T) {
     this.log("warn", message, meta);
   }
-  error(message: string, meta?: Record<string, unknown>) {
+  error<T extends object = Record<string, unknown>>(message: string, meta?: T) {
     this.log("error", message, meta);
   }
 }
-
 
 export const logger: ILogger = new SimpleLogger();
 
